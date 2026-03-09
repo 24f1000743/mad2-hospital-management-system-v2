@@ -1,0 +1,29 @@
+# Python
+_pycache_/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+
+# SQLite DB
+*.db
+*.sqlite3
+
+# Redis dump
+dump.rdb
+
+# Celery beat
+celerybeat-schedule*
+celerybeat-schedule.*
+celerybeat-schedule.dir
+
+# Node / Vue
+frontend/node_modules/
+frontend/dist/
+
+# OS / editor
+.DS_Store
+*.log
+.vscode/
+.idea/

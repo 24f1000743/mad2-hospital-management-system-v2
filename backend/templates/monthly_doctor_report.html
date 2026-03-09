@@ -1,0 +1,24 @@
+<h2>Monthly Activity Report</h2>
+
+<p>Doctor: {{ doctor.full_name }}</p>
+
+<table border="1" cellpadding="5">
+<tr>
+<th>Patient</th>
+<th>Date</th>
+<th>Time</th>
+<th>Diagnosis</th>
+<th>Prescription</th>
+</tr>
+
+{% for appt in appointments %}
+<tr>
+<td>{{ appt.patient.full_name }}</td>
+<td>{{ appt.date }}</td>
+<td>{{ appt.time }}</td>
+<td>{{ appt.diagnosis }}</td>
+<td>{{ appt.prescription }}</td>
+</tr>
+{% endfor %}
+
+</table>
