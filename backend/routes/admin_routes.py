@@ -1,8 +1,7 @@
 # backend/admin_routes.py  (ya backend/routes/admin_routes.py agar routes folder ke andar hai)
 from flask import Blueprint, request, jsonify
-from extensions import db
+from extensions import db, cache
 from models import User, Doctor, Patient, Appointment, Department, ROLE_DOCTOR
-from extensions import cache
 
 admin_bp = Blueprint("admin", __name__)
 
@@ -27,6 +26,7 @@ def admin_dashboard():
 # ---------- PATIENTS LIST (SHOW ALL REGISTERED PATIENTS) ----------
 
 @admin_bp.route("/patients", methods=["GET"])
+@cache.cached(timeout=120)
 def admin_patients():
     """
     Return all patients.
@@ -52,6 +52,7 @@ def admin_patients():
 # ---------- DOCTORS LIST (SHOW ALL DOCTORS) ----------
 
 @admin_bp.route("/doctors", methods=["GET"])
+@cache.cached(timeout=120)
 def admin_doctors():
     doctors = Doctor.query.join(User).filter(User.is_active == True).all()
     data = []
@@ -185,6 +186,21 @@ def admin_appointments():
             }
         )
     return jsonify(data)
+
+@admin_bp.route("/appointments/<int:appointment_id>", methods=["PATCH"])
+def update_appointment(appointment_id):
+    appt = Appointment.query.get(appointment_id)
+    if not appt:
+        return jsonify({"message": "Appointment not found"}), 404
+
+    data = request.get_json(silent=True) or {}
+    status = data.get("status")
+    if status not in ("Booked", "Completed", "Cancelled"):
+        return jsonify({"message": "Invalid status"}), 400
+
+    appt.status = status
+    db.session.commit()
+    return jsonify({"message": "Appointment updated"}), 200
 
 from flask import Blueprint, request, jsonify
 from extensions import db

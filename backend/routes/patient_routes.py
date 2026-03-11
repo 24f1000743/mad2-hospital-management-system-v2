@@ -2,12 +2,10 @@
 
 from datetime import datetime as dt, date as date_cls
 from flask import Blueprint, request, jsonify
+from flask_jwt_extended import get_jwt_identity, jwt_required
+import json
 
-from flask_jwt_extended import jwt_required, get_jwt_identity
-from tasks import export_patient_treatments_csv
-
-from extensions import db
-from extensions import cache
+from extensions import db, cache
 from models import (
     User,
     Patient,
@@ -25,13 +23,8 @@ patient_bp = Blueprint("patient", __name__)
 # ======================== HELPERS ========================
 
 def get_current_patient():
-    """
-    TEMPORARY:
-    We are not using JWT here. To keep the app working for demo,
-    we simply use the first patient in the database as the
-    "current" logged-in patient.
-    """
-    patient = Patient.query.first()
+    identity = json.loads(get_jwt_identity())
+    patient = Patient.query.filter_by(user_id=identity['id']).first()
     return patient
 
 
@@ -56,7 +49,7 @@ def serialize_department(dept: Department):
 # ======================== DASHBOARD ========================
 
 @patient_bp.route("/dashboard", methods=["GET"])
-@cache.cached(timeout=120)
+@jwt_required()
 def patient_dashboard():
     """
     Returns summary data for the patient dashboard:
@@ -130,6 +123,8 @@ def patient_dashboard():
 # ======================== DOCTOR SEARCH ========================
 
 @patient_bp.route("/doctors", methods=["GET"])
+@jwt_required()
+@cache.cached(timeout=120)
 def patient_doctors_list():
     """
     Returns list of doctors, optionally filtered by specialization or name.
@@ -154,6 +149,7 @@ def patient_doctors_list():
 # ======================== DOCTOR AVAILABILITY (FOR PATIENT) ========================
 
 @patient_bp.route("/doctors/<int:doctor_id>/availability", methods=["GET"])
+@jwt_required()
 def patient_doctor_availability(doctor_id):
     """
     Returns availability slots for a given doctor, visible to the patient.
@@ -187,6 +183,7 @@ def patient_doctor_availability(doctor_id):
 # ======================== BOOK APPOINTMENT ========================
 
 @patient_bp.route("/appointments", methods=["POST"])
+@jwt_required()
 def book_appointment():
     patient = get_current_patient()
     if not patient:
@@ -231,6 +228,7 @@ def book_appointment():
 # ======================== PATIENT APPOINTMENTS LIST ========================
 
 @patient_bp.route("/appointments", methods=["GET"])
+@jwt_required()
 def patient_appointments():
     patient = get_current_patient()
     if not patient:
@@ -261,6 +259,7 @@ def patient_appointments():
 # ======================== CANCEL APPOINTMENT ========================
 
 @patient_bp.route("/appointments/<int:appointment_id>/cancel", methods=["PATCH"])
+@jwt_required()
 def cancel_appointment(appointment_id):
     patient = get_current_patient()
     if not patient:
@@ -280,6 +279,7 @@ def cancel_appointment(appointment_id):
 # ======================== TREATMENT HISTORY ========================
 
 @patient_bp.route("/treatments", methods=["GET"])
+@jwt_required()
 def patient_treatments():
     patient = get_current_patient()
     if not patient:
@@ -308,25 +308,3 @@ def patient_treatments():
         )
 
     return jsonify(result), 200
-
-#==================Export Treatments ============
-
-from flask_jwt_extended import jwt_required, get_jwt_identity
-from tasks import export_patient_treatments_csv
-
-
-@patient_bp.route("/export-treatments", methods=["POST"])
-@jwt_required()
-def export_treatments():
-
-    user_id = get_jwt_identity()
-
-    from models import Patient
-    patient = Patient.query.filter_by(user_id=user_id).first()
-
-    task = export_patient_treatments_csv.delay(patient.id)
-
-    return {
-        "message": "CSV export started",
-        "task_id": task.id
-    }, 202

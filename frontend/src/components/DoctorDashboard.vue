@@ -229,7 +229,7 @@ export default {
   methods: {
     getAuthConfig() {
       const token =
-        localStorage.getItem("token") ||
+        localStorage.getItem("hms_token") ||
         localStorage.getItem("access_token") ||
         localStorage.getItem("jwt");
 
@@ -308,7 +308,7 @@ export default {
         this.loadAppointments();
       } catch (err) {
         console.error("Error saving treatment:", err.response?.data || err);
-        alert("Treatment save fail हुआ");
+        alert("Treatment save failed");
       }
     },
 

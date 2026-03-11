@@ -2,34 +2,35 @@
 
 from datetime import datetime as dt
 from flask import Blueprint, request, jsonify
-from extensions import cache
+from flask_jwt_extended import get_jwt_identity, jwt_required
+import json
 
-from extensions import db
+from extensions import db, cache
 from models import (
     Doctor,
     Appointment,
     Treatment,
-    DoctorAvailability,
+    DoctorAvailability, User
 )
 
 doctor_bp = Blueprint("doctor", __name__)
 
 
-# ================== HELPER: CURRENT DOCTOR (NO AUTH) ==================
+# ================== CURRENT DOCTOR ==================
 
 def get_current_doctor():
-    """
-    For now, we do NOT use JWT or login identity.
-    We simply treat the FIRST doctor in the database as the "current" doctor.
-    This avoids all token/header problems and lets the Doctor Dashboard work.
-    """
-    doctor = Doctor.query.first()
+    identity = json.loads(get_jwt_identity())
+    user = User.query.get(identity["id"])
+    doctor = Doctor.query.filter_by(user_id=user.id).first()
+    #doctor = Doctor.query.first()
     return doctor
 
 
 # ================== DOCTOR DASHBOARD INFO ==================
 
 @doctor_bp.route("/dashboard", methods=["GET"])
+@jwt_required()
+@cache.cached(timeout=60)
 def dashboard():
     doctor = get_current_doctor()
     if not doctor:
@@ -49,7 +50,7 @@ def dashboard():
 # ================== APPOINTMENTS LIST ==================
 
 @doctor_bp.route("/appointments", methods=["GET"])
-@cache.cached(timeout=60)
+@jwt_required()
 def doctor_appointments():
     doctor = get_current_doctor()
     if not doctor:
@@ -79,6 +80,7 @@ def doctor_appointments():
 # ================== UPDATE APPOINTMENT STATUS ==================
 
 @doctor_bp.route("/appointments/<int:appointment_id>/status", methods=["PATCH"])
+@jwt_required()
 def update_status(appointment_id):
     doctor = get_current_doctor()
     if not doctor:
@@ -103,6 +105,7 @@ def update_status(appointment_id):
 # ================== SAVE / UPDATE TREATMENT ==================
 
 @doctor_bp.route("/appointments/<int:appointment_id>/treatment", methods=["POST"])
+@jwt_required()
 def save_treatment(appointment_id):
     doctor = get_current_doctor()
     if not doctor:
@@ -130,6 +133,8 @@ def save_treatment(appointment_id):
 # ================== AVAILABILITY: GET ==================
 
 @doctor_bp.route("/availability", methods=["GET"])
+@jwt_required()
+@cache.cached(timeout=120)
 def get_availability():
     doctor = get_current_doctor()
     if not doctor:
@@ -158,6 +163,7 @@ def get_availability():
 # ================== AVAILABILITY: SAVE ==================
 
 @doctor_bp.route("/availability", methods=["POST"])
+@jwt_required()
 def save_availability():
     doctor = get_current_doctor()
     if not doctor:

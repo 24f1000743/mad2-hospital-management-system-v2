@@ -2,11 +2,12 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token
 from extensions import db
 from models import User, Patient, ROLE_PATIENT
+import json
 
 auth_bp = Blueprint("auth", __name__)
 
 def _identity(user):
-    return {"id": user.id, "role": user.role}
+    return json.dumps({"id": user.id, "role": user.role})
 
 @auth_bp.route("/register", methods=["POST"])
 def register():

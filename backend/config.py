@@ -4,6 +4,11 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
 
 class Config:
+    ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
+    ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "admin@hms.com")
+    ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin123")
+    
+    CELERY_TIMEZONE = 'Asia/Kolkata'
     SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(BASE_DIR, "hms_v2_new.db")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
